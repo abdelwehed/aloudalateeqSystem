@@ -1,0 +1,15 @@
+/*
+ * @NOTE: Prepend a `~` to css file paths that are in your node_modules
+ *        See https://github.com/webpack-contrib/sass-loader#imports
+ */
+body {
+  margin: 0;
+  justify-content: center;
+  background-color: #fff;
+}
+
+.Hello {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

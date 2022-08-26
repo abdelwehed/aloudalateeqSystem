@@ -1,0 +1,68 @@
+.dashboard {
+  flex: 1;
+  background-color: $secondary-color-light;
+  min-height: 100vh;
+}
+
+.dahboard-staf-sales-container {
+  display: flex;
+  justify-content: space-around;
+  flex-direction: row;
+}
+
+.dashboard-app-bar-logo-container {
+  background-image: linear-gradient(
+    0deg,
+    $secondary-color-light 5%,
+    $secondary-color
+  );
+  margin-bottom: 4rem;
+  flex: 1;
+  height: 6vh;
+}
+
+.dashboard-app-bar-helpers-container {
+  flex: 8;
+  height: 6vh;
+  margin-bottom: 4rem;
+}
+
+.dashboard-app-bar-account {
+  background-image: linear-gradient(
+    0deg,
+    $secondary-color-light 5%,
+    $secondary-color
+  );
+  flex: 1.5;
+  height: 6vh;
+  margin-bottom: 4rem;
+}
+
+.home-app-bar {
+  background-color: $gray-20;
+  width: 100%;
+  height: 4rem;
+}
+
+.dashboard-left {
+  background-color: $white;
+  width: 44%;
+  margin: 1.5rem 0 0 1.5rem;
+  min-height: 65vh;
+}
+
+.dashboard-right {
+  background-color: $secondary-color-light;
+  width: 53%;
+  margin: 1.5rem 1.5rem 0 0;
+}
+
+.dashboard-bottom-container {
+  background-color: $white;
+  display: flex;
+  flex-direction: 'row';
+  align-items: center;
+  justify-content: space-evenly;
+  margin: 1.5rem;
+  height: 7vh;
+}
