@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import AloudAlAteeqLogoArEn from '../../../assets/images/AloudAlAteeqArEn.png';
+import AloudAlAteeqLogoArEn from '../../../assets/images/aloudAlateeq_ArEn.png';
 /* import { Bar } from 'react-chartjs-2';
 import {
   dailySalesData,
@@ -28,17 +28,74 @@ import { LeftComponent } from './components/leftComponent';
 import ModalComponent from 'components/Modal';
 import { useEffect, useState } from 'react';
 import { dashboardConfigButtonsList } from 'features/orderPrepare/components/DashboardConfigProductButtons/constants';
-import { ProductsInterface } from 'dummyData/products';
+import PaymentSelection from 'features/payment/components/paymentSelection/paymentSelection';
+import PaymentActionButton from 'components/PaymentActionButton';
+import ReturnActionButton from 'components/ReturnActionButton';
+import { Summary } from 'features/closure/summary';
+import { useAppDispatch, useAppSelector } from 'renderer/hooks';
+import { RootState } from 'renderer/store';
+import { generateBillNumber } from 'features/payment/components/paymentBill/utils/billNumberGenerator';
+import { ReturnPaymentSelection } from 'features/payment/components/paymentSelection/returnPaymentSelection';
+import StaffList from 'features/staffLogin/components/staffList';
+import { AdminActions } from 'features/admin/adminActions';
+import firebase from 'firebase/firebase';
+import { ProductsInterface } from 'features/orderPrepare/types/productType';
+import {
+  setCategories,
+  setCollections,
+  setProducts,
+  setSuppliers,
+  setVariants,
+} from 'features/search/searchReducer';
+import { SearchedOrderProduct } from 'features/orderPrepare/orderReducer';
+import { SaveTransaction } from 'features/payment/components/paymentSelection/saveTransaction';
 
 export default function Home() {
-  const [open, setOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ProductsInterface | null>(
+  const [open, setOpen] = useState<boolean>(false);
+  const [isStaffListOpen, setIsStaffListOpen] = useState<boolean>(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false);
+  const [selectedItem, setSelectedItem] = useState<SearchedOrderProduct | null>(
     null
   );
+  const [paymentTypeSelected, setPaymentTypeSelected] = useState<any>(null);
+  const [returnPaymentTypeSelected, setReturnPaymentTypeSelected] =
+    useState<any>(null);
+  const [daySummaryOpen, setDaySummaryOpen] = useState<boolean>(false);
+  const [billModalOpen, setBillModalOpen] = useState<boolean>(false);
 
-  // didMount
+  const [transactionModalOpen, setTransactionModalOpen] =
+    useState<boolean>(false);
+
+  const [adminActionsOpen, setAdminActionsOpen] = useState<boolean>(false);
+
+  const totalOrder = useAppSelector(
+    (state: RootState) => state.payment.totalOrder
+  );
+
+  const staffInfos = useAppSelector(
+    (state: RootState) => state.staff.staffInfos
+  );
+
+  const dispatch = useAppDispatch();
+
   useEffect(() => {
     setOpen(true);
+
+    async function fetchData() {
+      const productsResult: any = await firebase.getProducts();
+      const categoriesResult: any = await firebase.getCategories();
+      const suppliersResult: any = await firebase.getSuppliers();
+      const collectionsResult: any = await firebase.getCollections();
+      const variantsResult: any = await firebase.getVariants();
+
+      dispatch(setProducts(productsResult));
+      dispatch(setCategories(categoriesResult));
+      dispatch(setSuppliers(suppliersResult));
+      dispatch(setCollections(collectionsResult));
+      dispatch(setVariants(variantsResult));
+    }
+
+    fetchData();
   }, []);
 
   ChartJS.register(
@@ -59,6 +116,34 @@ export default function Home() {
         alignItems={'center'}
         justifyContent="space-between"
       >
+        {/* START: ce composant répresente la popin d'ouverture du système pour alimenter avec le montant du cash de la caisse */}
+        <ModalComponent
+          isModalOpen={open}
+          handleCloseModal={() => setOpen(false)}
+        />
+        {/* END */}
+
+        <StaffList
+          isOpen={isStaffListOpen}
+          handleCloseStaffListModal={() => setIsStaffListOpen(false)}
+          staffInfos={staffInfos}
+        />
+
+        {/* START: ce composant concerne le x-report et le z-report */}
+        <Summary
+          isSummaryModalOpen={daySummaryOpen}
+          handleCloseSummaryModal={() => setDaySummaryOpen(false)}
+        />
+        {/* END */}
+
+        {/* START: AdminActions */}
+        <AdminActions
+          isSummaryModalOpen={adminActionsOpen}
+          handleCloseSummaryModal={() => setAdminActionsOpen(false)}
+        />
+        {/* END */}
+
+        {/* START: ce composant concerne le logo aloud al ateeq dans le header */}
         <Grid
           container
           justifyContent={'center'}
@@ -66,7 +151,9 @@ export default function Home() {
         >
           <img width="90px" alt="icon" src={AloudAlAteeqLogoArEn} />
         </Grid>
+        {/* END */}
 
+        {/* START: ce composant concerne la liste du header */}
         <Grid
           className="dashboard-app-bar-helpers-container"
           container
@@ -74,17 +161,39 @@ export default function Home() {
           alignItems={'center'}
           flexDirection={'row'}
         >
-          <Typography style={{ fontSize: 16, marginLeft: 5, marginRight: 5 }}>
-            Order
-          </Typography>
-          <Typography style={{ fontSize: 16, marginLeft: 5, marginRight: 5 }}>
-            Save Bill
-          </Typography>
-          <Typography style={{ fontSize: 16, marginLeft: 5, marginRight: 5 }}>
-            Extra
-          </Typography>
-        </Grid>
+          <Button
+            onClick={() => setDaySummaryOpen(true)}
+            className="icon-button"
+            sx={{
+              width: 100,
+              '&.MuiButtonBase-root:hover': {
+                backgroundColor: 'transparent',
+              },
+            }}
+          >
+            <Typography style={{ fontSize: 16, marginLeft: 5, marginRight: 5 }}>
+              Synthése
+            </Typography>
+          </Button>
 
+          <Button
+            onClick={() => setAdminActionsOpen(true)}
+            className="icon-button"
+            sx={{
+              width: 100,
+              '&.MuiButtonBase-root:hover': {
+                backgroundColor: 'transparent',
+              },
+            }}
+          >
+            <Typography style={{ fontSize: 16, marginLeft: 5, marginRight: 5 }}>
+              Admin
+            </Typography>
+          </Button>
+        </Grid>
+        {/* END */}
+
+        {/* START: ce composant contient le nom du staff connecté et un bouton changement du staff */}
         <Grid
           container
           flexDirection={'row'}
@@ -93,9 +202,10 @@ export default function Home() {
           className="dashboard-app-bar-account"
         >
           <Typography fontSize={'large'} color={'#fff'}>
-            Mohamed Ali
+            {staffInfos?.fullname}
           </Typography>
           <Button
+            onClick={() => setIsStaffListOpen(true)}
             sx={{
               height: 50,
               marginLeft: 1,
@@ -116,6 +226,8 @@ export default function Home() {
           </Button>
         </Grid>
       </Grid>
+      {/* END */}
+
       {/* TODO: uncomment this when implemeting sales analytics features
       <Grid className="dahboard-staf-sales-container">
         <Grid>
@@ -128,12 +240,16 @@ export default function Home() {
       */}
       <LogoMixed />
 
+      {/* START: cette partie contient les composant du milieu */}
       <Grid container flexDirection={'row'} justifyContent={'space-between'}>
         <LeftComponent />
         <RightComponent
-          onProductSelected={(item: ProductsInterface) => setSelectedItem(item)}
+          onProductSelected={(item: SearchedOrderProduct) =>
+            setSelectedItem(item)
+          }
         />
       </Grid>
+      {/* END */}
 
       <Grid className="dashboard-bottom-container">
         <Button
@@ -148,8 +264,45 @@ export default function Home() {
           data={dashboardConfigButtonsList}
           selectedProduct={selectedItem}
         />
-        <Button
-          //onClick={() => navigate('/login')}
+
+        <ReturnPaymentSelection
+          billModalOpen={billModalOpen}
+          closeBillModal={() => setBillModalOpen(false)}
+          returnPaymentTypeSelected={returnPaymentTypeSelected}
+        />
+
+        <SaveTransaction
+          saveTransactionModalOpen={transactionModalOpen}
+          closeSaveTransactionlModal={() => setTransactionModalOpen(false)}
+        />
+
+        {totalOrder === 0 && (
+          <Button
+            sx={{ backgroundColor: 'green' }}
+            variant="contained"
+            onClick={() => setTransactionModalOpen(true)}
+          >
+            Save transaction
+          </Button>
+        )}
+        {totalOrder > 0 && (
+          <PaymentActionButton
+            onPress={(paymentTypeSelected: any) => {
+              setIsPaymentOpen(true);
+              setPaymentTypeSelected(paymentTypeSelected);
+            }}
+          />
+        )}
+        {totalOrder < 0 && (
+          <ReturnActionButton
+            onPress={(paymentTypeSelected: any) => {
+              setBillModalOpen(true);
+              setReturnPaymentTypeSelected(paymentTypeSelected);
+            }}
+          />
+        )}
+        {/*         <Button
+          onClick={() => setIsPaymentOpen(true)}
           className="icon-button"
           sx={{
             backgroundColor: 'rgb(59, 150, 32)',
@@ -161,13 +314,17 @@ export default function Home() {
           }}
         >
           <PlayArrowOutlinedIcon sx={{ color: '#fff', fontSize: 50 }} />
-        </Button>
+          
+        </Button> */}
       </Grid>
 
-      <ModalComponent
-        isModalOpen={open}
-        handleCloseModal={() => setOpen(false)}
+      {/* START: ce composant répresente le bouton du choix du méthod de paiement */}
+      <PaymentSelection
+        isPaymentModalOpen={isPaymentOpen}
+        handleCloseModal={() => setIsPaymentOpen(false)}
+        paymentTypeSelected={paymentTypeSelected}
       />
+      {/* END */}
     </div>
   );
 }

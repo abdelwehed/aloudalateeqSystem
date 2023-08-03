@@ -17,6 +17,8 @@ import { useState } from 'react';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import { Moment } from 'moment';
+import { useAppDispatch } from 'renderer/hooks';
+import { setNewCustomer } from 'features/addCustomer/customerReducer';
 
 const style = {
   position: 'absolute' as 'absolute',
@@ -30,14 +32,35 @@ const style = {
   p: 4,
 };
 
-export default function AddUserForm(props: any) {
+export default function AddCustomerForm(props: any) {
+  const [customerFirstName, setCustomerFirstName] = useState<string | null>(
+    null
+  );
+  const [customerLastName, setCustomerLastName] = useState<string | null>(null);
+  const [customerPhoneNumber, setCustomerPhoneNumber] = useState<string | null>(
+    null
+  );
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const [birthDate, setBirthDate] = useState<Moment | null>(null);
-  console.log({ birthDate, typeee: typeof birthDate });
+
+  const dispatch = useAppDispatch();
+
+  function handleAddCustomer() {
+    const customerData = {
+      firstName: customerFirstName,
+      lastName: customerLastName,
+      phoneNumber: customerPhoneNumber,
+      email: customerEmail,
+      birthDate: birthDate,
+    };
+    dispatch(setNewCustomer(customerData));
+    props.handleCloseModal();
+  }
 
   return (
     <Modal
       open={props.isOpen}
-      // onClose={props.handleCloseModal}
+      onClose={props.handleCloseModal}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
     >
@@ -67,8 +90,12 @@ export default function AddUserForm(props: any) {
                     required
                     fullWidth
                     id="firstName"
+                    placeholder="First Name"
+                    variant="outlined"
                     label="First Name"
                     autoFocus
+                    onChange={(e) => setCustomerFirstName(e.target.value)}
+                    value={customerFirstName}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -79,6 +106,8 @@ export default function AddUserForm(props: any) {
                     label="Last Name"
                     name="lastName"
                     autoComplete="family-name"
+                    onChange={(e) => setCustomerLastName(e.target.value)}
+                    value={customerLastName}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -89,6 +118,8 @@ export default function AddUserForm(props: any) {
                     label="Phone Number"
                     name="phonenumber"
                     autoComplete="phonenumber"
+                    onChange={(e) => setCustomerPhoneNumber(e.target.value)}
+                    value={customerPhoneNumber}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -99,6 +130,8 @@ export default function AddUserForm(props: any) {
                     label="Email Address"
                     name="email"
                     autoComplete="email"
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    value={customerEmail}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -110,22 +143,22 @@ export default function AddUserForm(props: any) {
                     renderInput={(params) => <TextField {...params} />}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                {/*                 <Grid item xs={12}>
                   <FormControlLabel
                     control={
                       <Checkbox value="allowExtraEmails" color="primary" />
                     }
                     label="I want to receive inspiration, marketing promotions and updates via email."
                   />
-                </Grid>
+                </Grid> */}
               </Grid>
               <Button
-                type="submit"
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
+                onClick={handleAddCustomer}
               >
-                Add user
+                Add Customer
               </Button>
             </Box>
           </Box>

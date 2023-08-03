@@ -1,11 +1,11 @@
 import { Grid } from '@mui/material';
-import { ProductsInterface } from 'dummyData/products';
+import { SearchedOrderProduct } from 'features/orderPrepare/orderReducer';
 import { IdashboardConfigButtonsList } from './constants';
 import { ProductConfigItem } from './ProductConfigItem';
 
 type DashboardConfigProductButtonsType = {
   data: Array<IdashboardConfigButtonsList>;
-  selectedProduct?: ProductsInterface | null;
+  selectedProduct?: SearchedOrderProduct | null;
 };
 /**
  * This component diplays the bottom buttons of the dashboard
@@ -24,6 +24,7 @@ export function DashboardConfigProductButtons(
           selectedProduct={selectedProduct}
           id={el.id}
           icon={el.component}
+          onPress={el.onPress}
         />
       ))}
     </Grid>

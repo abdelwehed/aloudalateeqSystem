@@ -8,6 +8,9 @@ import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useAppDispatch } from 'renderer/hooks';
+import { setCashFund } from 'features/cashFund/cashFundReducer';
 
 const style = {
   position: 'absolute' as 'absolute',
@@ -22,13 +25,25 @@ const style = {
 };
 
 export default function ModalComponent(props: any) {
+  const [shiftCash, setShiftCash] = useState<number | null>(null);
+
   const navigate = useNavigate();
+
+  const dispatch = useAppDispatch();
+
+  function handleConfirmStartCashFund() {
+    if (shiftCash === null) {
+      return;
+    }
+
+    dispatch(setCashFund(shiftCash));
+    props.handleCloseModal();
+  }
 
   return (
     <div>
       <Modal
         open={props.isModalOpen}
-        // onClose={props.handleCloseModal}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
@@ -61,6 +76,7 @@ export default function ModalComponent(props: any) {
             required
             id="outlined-required"
             placeholder="CASH COUNT"
+            onChange={(e) => setShiftCash(parseInt(e.target.value))}
             sx={{
               m: 1,
               width: '100%',
@@ -86,7 +102,7 @@ export default function ModalComponent(props: any) {
               variant="contained"
               endIcon={<CheckIcon />}
               sx={{ backgroundColor: 'green' }}
-              onClick={props.handleCloseModal}
+              onClick={handleConfirmStartCashFund}
             >
               Confirm
             </Button>

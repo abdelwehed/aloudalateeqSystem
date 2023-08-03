@@ -5,7 +5,7 @@ type AddUserButtonProps = {
   onButtonClick: (isFormOpen: boolean) => void;
 };
 
-export default function AddUserButton(props: AddUserButtonProps) {
+export default function AddCustomerButton(props: AddUserButtonProps) {
   const Icon = props.icon;
 
   return (

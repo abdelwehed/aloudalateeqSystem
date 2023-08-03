@@ -8,9 +8,13 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { Button, CircularProgress, TextField } from '@mui/material';
-import { products, ProductsInterface } from 'dummyData/products';
-import { useAppDispatch } from 'renderer/hooks';
-import { setSearchedProduct } from 'features/orderPrepare/orderReducer';
+import { useAppDispatch, useAppSelector } from 'renderer/hooks';
+import {
+  SearchedOrderProduct,
+  setSearchedProduct,
+} from 'features/orderPrepare/orderReducer';
+import { ProductsInterface } from '../types/productType';
+import { RootState } from 'renderer/store';
 
 const useStyles = makeStyles({
   table: {
@@ -24,8 +28,8 @@ const columns: readonly any[] = [
     label: '',
   },
   {
-    id: 'weight',
-    label: 'Weight',
+    id: 'category',
+    label: 'Category',
   },
   { id: 'price', label: 'Price' },
   { id: 'quantity', label: 'Quantity' },
@@ -42,11 +46,15 @@ export default function SearchProductsComponent() {
       };
     })
   ); */
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<SearchedOrderProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searched, setSearched] = useState<string>('');
   const classes = useStyles();
   const dispatch = useAppDispatch();
+
+  const productsList = useAppSelector(
+    (state: RootState) => state.search.products
+  );
 
   function requestSearch(e: any) {
     const searchText = e.target.value.toLowerCase();
@@ -57,22 +65,33 @@ export default function SearchProductsComponent() {
         return;
       }
 
-      const filteredRows = products
-        .filter((row) => {
-          const itemName = `${row.englishName} - ${row.arabicName}`;
+      const filteredRows: Array<SearchedOrderProduct> = productsList
+        .filter((row: ProductsInterface) => {
+          const itemName = `${row.name}`;
           if (
             itemName.toLowerCase().includes(searchText) ||
-            row.code.toString().toLowerCase().includes(searchText)
+            row.supplierRef.toString().toLowerCase().includes(searchText)
           ) {
             return true;
           }
           return false;
         })
-        .map((product) => {
+        .map((product: ProductsInterface) => {
+          console.log({ product });
+          let variantSet = null;
+          if (product.variants?.variants) {
+            variantSet = product.variants?.variants[0].name;
+          }
+
           return {
             ...product,
-            quantity: 1,
-            weight: product.weight || product.unit,
+            productOrderQuantity: 1,
+            productOrderValue: product.sellPrice,
+            productOrderVariant: {
+              variantGroupId: product.variants?.id,
+              variantGroupName: product.variants?.name,
+              variant: variantSet,
+            },
           };
         });
 
@@ -80,12 +99,12 @@ export default function SearchProductsComponent() {
     }, 1000);
   }
 
-  function handleQuantityChange(event: any, rowItem: ProductsInterface) {
-    const rowWithQuantityUpdated = rows.map((row) => {
-      if (row.code === rowItem.code) {
+  function handleQuantityChange(event: any, rowItem: SearchedOrderProduct) {
+    const rowWithQuantityUpdated = rows.map((row: SearchedOrderProduct) => {
+      if (row.supplierRef === rowItem.supplierRef) {
         return {
           ...row,
-          quantity: parseInt(event.target.value),
+          productOrderQuantity: parseInt(event.target.value),
         };
       }
       return row;
@@ -94,7 +113,7 @@ export default function SearchProductsComponent() {
     setRows(rowWithQuantityUpdated);
   }
 
-  function handleOnSearchedItemClick(rowItem: ProductsInterface) {
+  function handleOnSearchedItemClick(rowItem: SearchedOrderProduct) {
     dispatch(setSearchedProduct(rowItem));
   }
 
@@ -136,8 +155,8 @@ export default function SearchProductsComponent() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.code}>
+                {rows?.map((row: SearchedOrderProduct) => (
+                  <TableRow key={row.supplierRef}>
                     <TableCell colSpan={2} align="right">
                       <Button
                         variant="contained"
@@ -147,10 +166,10 @@ export default function SearchProductsComponent() {
                       </Button>
                     </TableCell>
                     <TableCell colSpan={2} align="right">
-                      {row.weight}
+                      {row.category?.name}
                     </TableCell>
                     <TableCell colSpan={2} align="right">
-                      {row.price}
+                      {row.sellPrice}
                     </TableCell>
                     <TableCell colSpan={2} align="right">
                       <TextField
@@ -158,7 +177,7 @@ export default function SearchProductsComponent() {
                         style={{ width: 40 }}
                         id="outlined-number"
                         type="number"
-                        value={row.quantity}
+                        value={row.productOrderQuantity}
                         onChange={(e) => handleQuantityChange(e, row)}
                         InputLabelProps={{
                           shrink: true,
@@ -166,10 +185,10 @@ export default function SearchProductsComponent() {
                       />
                     </TableCell>
                     <TableCell colSpan={2} align="center">
-                      {row.englishName} - {row.arabicName}
+                      {row.name}
                     </TableCell>
                     <TableCell colSpan={2} align="right">
-                      {row.code}
+                      {row.supplierRef}
                     </TableCell>
                   </TableRow>
                 ))}

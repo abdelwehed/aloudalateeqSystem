@@ -7,6 +7,9 @@ module.exports = {
     // Since React 17 and typescript 4.1 you can safely disable the rule
     'react/react-in-jsx-scope': 'off',
   },
+  env: {
+    es2021: true,
+  },
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',

@@ -3,15 +3,16 @@ import { useAppDispatch } from 'renderer/hooks';
 import {
   incrementQuantity,
   decrementQuantity,
-  incrementUnit,
-  decrementUnit,
+  SearchedOrderProduct,
+  changeSearchItemNextVariant,
+  changeSearchItemPreviousVariant,
 } from 'features/orderPrepare/orderReducer';
-import { ProductsInterface } from 'dummyData/products';
 
 type ProductConfigItemProps = {
   id?: string;
   icon: any;
-  selectedProduct?: ProductsInterface | null;
+  selectedProduct?: SearchedOrderProduct | null;
+  onPress?: () => void;
 };
 
 export function ProductConfigItem(props: ProductConfigItemProps) {
@@ -22,33 +23,55 @@ export function ProductConfigItem(props: ProductConfigItemProps) {
   const product = props.selectedProduct;
 
   function handleOnItemClick(): void {
+    if (props.onPress) {
+      props.onPress();
+    }
+
     if (!product) {
       return;
     }
 
     switch (key) {
       case 'quantityIncrementIcon': {
-        dispatch(incrementQuantity(product?.code));
+        dispatch(incrementQuantity(product?.supplierRef));
         return;
       }
       case 'quantityDecrementIcon': {
-        dispatch(decrementQuantity(product?.code));
+        dispatch(decrementQuantity(product?.supplierRef));
         return;
       }
-      case 'unitIncrementIcon': {
-        const incrementUnitPayload = {
-          code: product?.code,
-          unitType: product?.unitType,
+      case 'nextVariantChangeIcon': {
+        if (
+          !product?.variants?.variants ||
+          !product?.productOrderVariant?.variantGroupId
+        ) {
+          return;
+        }
+        const nextVariantPayload = {
+          variantGroupId: product?.variants?.id,
+          variantGroupName: product?.variants?.name,
+          variant: product?.productOrderVariant.variant,
+          code: product?.supplierRef,
         };
-        dispatch(incrementUnit(incrementUnitPayload));
+
+        dispatch(changeSearchItemNextVariant(nextVariantPayload));
         return;
       }
-      case 'unitDecrementIcon': {
-        const decrementUnitPayload = {
-          code: product?.code,
-          unitType: product?.unitType,
+      case 'previousVariantChangeIcon': {
+        if (
+          !product?.variants?.variants ||
+          !product?.productOrderVariant?.variantGroupId
+        ) {
+          return;
+        }
+        const nextVariantPayload = {
+          variantGroupId: product?.variants?.id,
+          variantGroupName: product?.variants?.name,
+          variant: product?.productOrderVariant.variant,
+          code: product?.supplierRef,
         };
-        dispatch(decrementUnit(decrementUnitPayload));
+
+        dispatch(changeSearchItemPreviousVariant(nextVariantPayload));
         return;
       }
       default:

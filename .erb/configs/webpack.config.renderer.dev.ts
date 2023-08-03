@@ -123,6 +123,13 @@ const configuration: webpack.Configuration = {
      */
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
+      VITE_FIREBASE_API_KEY: 'AIzaSyDO0nOKY6JHQUXnciEl-FIvtyHCYJEJZFw',
+      VITE_FIREBASE_AUTH_DOMAIN: 'aloudalateeq-dev.firebaseapp.com',
+      //VITE_FIREBASE_DB_URL:https://cosmetic-shop-2be61-default-rtdb.europe-west1.firebasedatabase.app
+      VITE_FIREBASE_PROJECT_ID: 'aloudalateeq-dev',
+      VITE_FIREBASE_STORAGE_BUCKET: 'aloudalateeq-dev.appspot.com',
+      VITE_FIREBASE_MSG_SENDER_ID: '1074476713145',
+      VITE_FIREBASE_APP_ID: '1:1074476713145:web:3265bb6d5ac2d7a1e10768',
     }),
 
     new webpack.LoaderOptionsPlugin({

@@ -1,12 +1,16 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-  oilUniTypeValues,
-  oudUniTypeValues,
-  ProductsInterface,
-} from '../../dummyData/products';
+import { ProductsInterface } from './types/productType';
+
+export interface SearchedOrderProduct extends ProductsInterface {
+  productOrderQuantity: number;
+  productOrderValue: number;
+  productOrderVariant?: any;
+  specialDiscount?: number; // discount done at caisse (in the shop)
+  netToPay?: number;
+}
 
 export interface SearchProductsState {
-  searchedProducts: Array<ProductsInterface>;
+  searchedProducts: Array<SearchedOrderProduct>;
 }
 
 const initialState: SearchProductsState = {
@@ -18,19 +22,23 @@ const searchSlice = createSlice({
   initialState,
   reducers: {
     // set searched products
-    setSearchedProduct(state, action: PayloadAction<ProductsInterface>) {
+    setSearchedProduct(state, action: PayloadAction<SearchedOrderProduct>) {
       const productAlreadyAdded =
         state.searchedProducts.filter(
-          (product) => product.code === action.payload.code
+          (product) => product.supplierRef === action.payload.supplierRef
         ).length > 0;
 
       if (productAlreadyAdded) {
         const productsSearchedWithQuantityModified = state.searchedProducts.map(
           (pr) => {
-            if (pr.code === action.payload.code) {
+            if (pr.supplierRef === action.payload.supplierRef) {
+              const newQuantity =
+                (pr.productOrderQuantity || 0) +
+                (action.payload.productOrderQuantity || 0);
               return {
                 ...pr,
-                quantity: (pr.quantity || 0) + (action.payload.quantity || 0),
+                productOrderQuantity: newQuantity,
+                productOrderValue: (pr.productOrderValue || 0) * newQuantity,
               };
             }
             return pr;
@@ -39,21 +47,18 @@ const searchSlice = createSlice({
         state.searchedProducts = productsSearchedWithQuantityModified;
         return;
       }
+
       state.searchedProducts = [...state.searchedProducts, action.payload];
     },
-    // increment quantity
-    incrementQuantity(state, action: PayloadAction<number>) {
+    // increment productOrderQuantity
+    incrementQuantity(state, action: PayloadAction<string>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload) {
-          const quantityIncrementeByOne = (product?.quantity || 0) + 1;
-          const weight =
-            product.unitType === 'piece'
-              ? product.weight
-              : quantityIncrementeByOne * product.unit;
+        if (product.supplierRef === action.payload) {
+          const quantityIncrementeByOne =
+            (product?.productOrderQuantity || 0) + 1;
           return {
             ...product,
-            quantity: quantityIncrementeByOne,
-            weight,
+            productOrderQuantity: quantityIncrementeByOne,
           };
         }
         return product;
@@ -61,19 +66,15 @@ const searchSlice = createSlice({
 
       state.searchedProducts = newSearchedProducts;
     },
-    // decrement quantity
+    // decrement productOrderQuantity
     decrementQuantity(state, action: PayloadAction<any>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload) {
-          const quantityDecrementeByOne = (product?.quantity || 0) - 1;
-          const weight =
-            product.unitType === 'piece'
-              ? product.weight
-              : quantityDecrementeByOne * product.unit;
+        if (product.supplierRef === action.payload) {
+          const quantityDecrementeByOne =
+            (product?.productOrderQuantity || 0) - 1;
           return {
             ...product,
-            quantity: quantityDecrementeByOne,
-            weight,
+            productOrderQuantity: quantityDecrementeByOne,
           };
         }
         return product;
@@ -81,82 +82,15 @@ const searchSlice = createSlice({
 
       state.searchedProducts = newSearchedProducts;
     },
-    // increment unit
-    incrementUnit(state, action: PayloadAction<any>) {
-      if (action.payload.unitType === 'piece') {
-        return;
-      }
-      const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
-          const unitTypeValues =
-            action.payload.unitType === 'kg'
-              ? oudUniTypeValues
-              : oilUniTypeValues;
-          const currentUnit = product?.unit;
-          const currentUnitIndex = unitTypeValues.findIndex(
-            (el) => el.value === currentUnit
-          );
-          const incrementedUnit =
-            currentUnitIndex + 1 === unitTypeValues.length
-              ? currentUnit
-              : unitTypeValues[currentUnitIndex + 1].value;
-
-          return {
-            ...product,
-            quantity: 1,
-            unit: incrementedUnit,
-            weight: incrementedUnit,
-          };
-        }
-        return product;
-      });
-
-      state.searchedProducts = newSearchedProducts;
-    },
-    // decrement unit
-    decrementUnit(state, action: PayloadAction<any>) {
-      if (action.payload.unitType === 'piece') {
-        return;
-      }
-      const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
-          const unitTypeValues =
-            action.payload.unitType === 'kg'
-              ? oudUniTypeValues
-              : oilUniTypeValues;
-          const currentUnit = product?.unit;
-          const currentUnitIndex = unitTypeValues.findIndex(
-            (el) => el.value === currentUnit
-          );
-          const incrementedUnit =
-            currentUnitIndex === 0
-              ? currentUnit
-              : unitTypeValues[currentUnitIndex - 1].value;
-
-          return {
-            ...product,
-            quantity: 1,
-            unit: incrementedUnit,
-            weight: incrementedUnit,
-          };
-        }
-        return product;
-      });
-
-      state.searchedProducts = newSearchedProducts;
-    },
-    // change searched item quantity
+    // change searched item productOrderQuantity
     changeSearchItemQuantity(state, action: PayloadAction<any>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
-          const weight =
-            product.unitType === 'piece'
-              ? product.weight
-              : action.payload.quantity * product.unit;
+        if (product.supplierRef === action.payload.code) {
           return {
             ...product,
-            quantity: action.payload.quantity,
-            weight,
+            productOrderQuantity: action.payload.quantity,
+            productOrderValue:
+              (product.sellPrice || 0) * action.payload.quantity,
           };
         }
         return product;
@@ -167,10 +101,10 @@ const searchSlice = createSlice({
     // change searched item special promotion
     changeSearchItemSpecialPromotion(state, action: PayloadAction<any>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
+        if (product.supplierRef === action.payload.code) {
           return {
             ...product,
-            special: action.payload.special,
+            specialDiscount: action.payload.special,
           };
         }
         return product;
@@ -178,15 +112,18 @@ const searchSlice = createSlice({
 
       state.searchedProducts = newSearchedProducts;
     },
-    // change searched item unit value
-    changeSearchItemUnit(state, action: PayloadAction<any>) {
+    // change searched item variant
+    changeSearchItemVariant(state, action: PayloadAction<any>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
+        if (product.supplierRef === action.payload.code) {
           return {
             ...product,
-            unit: action.payload.unit,
-            quantity: 1,
-            weight: action.payload.unit,
+            productOrderQuantity: 1,
+            productOrderVariant: {
+              variantGroupId: action.payload.variantGroupId,
+              variantGroupName: action.payload.variantGroupName,
+              variant: action.payload.variant,
+            },
           };
         }
         return product;
@@ -194,13 +131,58 @@ const searchSlice = createSlice({
 
       state.searchedProducts = newSearchedProducts;
     },
-    // change searched item weight value
-    changeSearchItemWeight(state, action: PayloadAction<any>) {
+    // select next item variant
+    changeSearchItemNextVariant(state, action: PayloadAction<any>) {
       const newSearchedProducts = state.searchedProducts.map((product) => {
-        if (product.code === action.payload.code) {
+        if (product.supplierRef === action.payload.code) {
+          const currentVariant = product?.productOrderVariant.variant;
+          const currentVariantIndex = product?.variants?.variants?.findIndex(
+            (el) => el.name === currentVariant
+          );
+          const nextVariant =
+            // @ts-ignore
+            currentVariantIndex + 1 === product?.variants?.variants.length
+              ? currentVariant
+              : // @ts-ignore
+                product?.variants?.variants[currentVariantIndex + 1].name;
+
           return {
             ...product,
-            weight: action.payload.weight,
+            productOrderQuantity: 1,
+            productOrderVariant: {
+              ...product.productOrderVariant,
+              variant: nextVariant,
+            },
+          };
+        }
+
+        return product;
+      });
+
+      state.searchedProducts = newSearchedProducts;
+    },
+    // select previous item variant
+    changeSearchItemPreviousVariant(state, action: PayloadAction<any>) {
+      const newSearchedProducts = state.searchedProducts.map((product) => {
+        if (product.supplierRef === action.payload.code) {
+          const currentVariant = product?.productOrderVariant.variant;
+          const currentVariantIndex = product?.variants?.variants?.findIndex(
+            (el) => el.name === currentVariant
+          );
+
+          const previousVariant =
+            currentVariantIndex === 0
+              ? currentVariant
+              : // @ts-ignore
+                product?.variants?.variants[currentVariantIndex - 1].name;
+
+          return {
+            ...product,
+            productOrderQuantity: 1,
+            productOrderVariant: {
+              ...product.productOrderVariant,
+              variant: previousVariant,
+            },
           };
         }
         return product;
@@ -209,9 +191,9 @@ const searchSlice = createSlice({
       state.searchedProducts = newSearchedProducts;
     },
     // delete searched item
-    removeSearchItem(state, action: PayloadAction<number>) {
+    removeSearchItem(state, action: PayloadAction<string>) {
       const newSearchedProducts = state.searchedProducts.filter(
-        (product) => product.code !== action.payload
+        (product) => product.supplierRef !== action.payload
       );
 
       state.searchedProducts = newSearchedProducts;
@@ -224,11 +206,10 @@ export const {
   incrementQuantity,
   decrementQuantity,
   changeSearchItemQuantity,
+  changeSearchItemVariant,
+  changeSearchItemNextVariant,
+  changeSearchItemPreviousVariant,
   changeSearchItemSpecialPromotion,
-  incrementUnit,
-  decrementUnit,
-  changeSearchItemUnit,
-  changeSearchItemWeight,
   removeSearchItem,
 } = searchSlice.actions;
 export default searchSlice.reducer;

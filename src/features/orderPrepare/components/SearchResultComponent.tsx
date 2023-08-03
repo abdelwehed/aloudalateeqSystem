@@ -21,15 +21,11 @@ import {
 import {
   changeSearchItemQuantity,
   changeSearchItemSpecialPromotion,
-  changeSearchItemUnit,
-  changeSearchItemWeight,
+  changeSearchItemVariant,
   removeSearchItem,
+  SearchedOrderProduct,
 } from 'features/orderPrepare/orderReducer';
-import {
-  oilUniTypeValues,
-  oudUniTypeValues,
-  ProductsInterface,
-} from 'dummyData/products';
+import { setTotalOrder } from 'features/payment/paymentReducer';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -52,15 +48,14 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 interface Column {
   id:
     | 'button'
-    | 'net'
+    | 'netToPay'
     | 'special'
-    | 'percent'
-    | 'weight'
+    // | 'percent'
     | 'quantity'
-    | 'price'
-    | 'unit'
+    | 'variants'
+    | 'sellPrice'
     | 'item'
-    | 'code'
+    | 'supplierRef'
     | 'select';
   label: string;
   minWidth?: number;
@@ -70,76 +65,73 @@ interface Column {
 
 const columns: readonly Column[] = [
   { id: 'button', label: '', align: 'right' },
-  { id: 'net', label: 'Net', align: 'right' },
+  { id: 'netToPay', label: 'Net', align: 'right' },
   { id: 'special', label: 'Special', align: 'right' },
-  {
+  /* {
     id: 'percent',
     label: '%',
     align: 'right',
     format: (value: number) => value.toLocaleString('en-US'),
-  },
-  {
-    id: 'weight',
-    label: 'Weight',
-    align: 'right',
-    format: (value: number) => value.toLocaleString('en-US'),
-  },
+  }, */
   {
     id: 'quantity',
     label: 'Quantity',
     align: 'right',
     format: (value: number) => value.toFixed(2),
   },
-  { id: 'price', label: 'Price', align: 'right' },
-  { id: 'unit', label: 'Unit', align: 'right' },
+  {
+    id: 'variants',
+    label: 'Variants',
+    align: 'right',
+  },
+  { id: 'sellPrice', label: 'Price', align: 'right' },
   { id: 'item', label: 'Item', align: 'center' },
-  { id: 'code', label: 'Code', align: 'right' },
+  { id: 'supplierRef', label: 'Code', align: 'right' },
   { id: 'select', label: 'Select', align: 'right' },
 ];
 
 export default function SearchResultComponent(props: any) {
   const dispatch = useAppDispatch();
 
-  const [rows, setRows] = React.useState<Array<any>>([]);
-  const [selected, setSelected] = React.useState<number | null>(null);
+  const [selected, setSelected] = React.useState<string | null>(null);
 
   const [totalDisplayedPrice, setTotalDisplayedPrice] =
     React.useState<number>(0);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(rows?.length);
 
   const searchedProducts = useAppSelector(
     (state: RootState) => state.products.searchedProducts
-  ).map((el) => {
-    const netQuantityDependant = (el.quantity || 0) * el.price;
-    const netWeightDependant = (el.weight || 0) * el.price;
+  ).map((el: SearchedOrderProduct) => {
+    const netQuantityDependant = (el.productOrderQuantity || 0) * el.sellPrice;
 
-    const netWithoutPromotion =
-      el.unitType === 'piece' ? netQuantityDependant : netWeightDependant;
-    const promotion = el.percent + el.special;
+    // in VERSION 1: if we have promotion such as solde, it is priorit than single product disount
+    // in VERSION 2: set the greater discount
+    const discount = el.promo.value || el.reduction?.value || 0; // V1
+    const specialDiscount = el.specialDiscount || 0;
+    const promotion = discount + specialDiscount;
     const productNet =
       promotion !== 0
-        ? (netWithoutPromotion * (100 - promotion)) / 100
-        : netWithoutPromotion;
+        ? (netQuantityDependant * (100 - promotion)) / 100
+        : netQuantityDependant;
 
     return {
       ...el,
-      net: productNet,
+      netToPay: productNet,
     };
   });
 
   React.useEffect(() => {
     let total = 0;
     searchedProducts.map((el) => {
-      total += el.net;
+      total += el.netToPay;
     });
 
     setTotalDisplayedPrice(total);
+    dispatch(setTotalOrder(total));
   }, [searchedProducts]);
 
-  function handleQuantityChange(event: any, rowItem: ProductsInterface) {
+  function handleQuantityChange(event: any, rowItem: SearchedOrderProduct) {
     const newQuantity = parseInt(event.target.value);
-    const itemCode = rowItem.code;
+    const itemCode = rowItem.supplierRef;
     const changeQuantityPayload = {
       quantity: newQuantity,
       code: itemCode,
@@ -148,17 +140,17 @@ export default function SearchResultComponent(props: any) {
     dispatch(changeSearchItemQuantity(changeQuantityPayload));
   }
 
-  function handleElementDelete(rowItem: ProductsInterface) {
-    if (rowItem?.code === selected) {
+  function handleElementDelete(rowItem: SearchedOrderProduct) {
+    if (rowItem?.supplierRef === selected) {
       props.onItemSelect(null);
       setSelected(null);
     }
-    dispatch(removeSearchItem(rowItem.code));
+    dispatch(removeSearchItem(rowItem.supplierRef));
   }
 
-  function handleSpecialPromotion(e: any, rowItem: ProductsInterface) {
+  function handleSpecialPromotion(e: any, rowItem: SearchedOrderProduct) {
     const newSpecial = parseInt(e.target.value);
-    const itemCode = rowItem.code;
+    const itemCode = rowItem.supplierRef;
     const changeSpecialPayload = {
       special: newSpecial,
       code: itemCode,
@@ -167,55 +159,46 @@ export default function SearchResultComponent(props: any) {
     dispatch(changeSearchItemSpecialPromotion(changeSpecialPayload));
   }
 
-  function handleUnitChange(e: any, rowItem: ProductsInterface) {
-    const newUnit = parseInt(e.target.value);
-    const itemCode = rowItem.code;
-    const changeUnitPayload = {
-      unit: newUnit,
+  function handleVariantChange(e: any, rowItem: SearchedOrderProduct) {
+    const variantParsed = e.target.value;
+    const itemCode = rowItem.supplierRef;
+
+    const changeVariantPayload = {
+      variantGroupId: rowItem.variants?.id,
+      variantGroupName: rowItem.variants?.name,
+      variant: variantParsed,
       code: itemCode,
     };
 
-    dispatch(changeSearchItemUnit(changeUnitPayload));
-  }
+    console.log({ changeVariantPayload });
 
-  function handleWeightChange(e: any, rowItem: ProductsInterface) {
-    const newWeight = parseFloat(e.target.value);
-    const itemCode = rowItem.code;
-    const changeWeightPayload = {
-      weight: newWeight,
-      code: itemCode,
-    };
-
-    dispatch(changeSearchItemWeight(changeWeightPayload));
+    dispatch(changeSearchItemVariant(changeVariantPayload));
   }
 
   function handleClick(
     event: React.MouseEvent<unknown>,
-    rowItem: ProductsInterface
+    rowItem: SearchedOrderProduct
   ) {
     if (selected === null) {
-      console.log('selected null');
       props.onItemSelect(rowItem);
-      setSelected(rowItem?.code);
+      setSelected(rowItem?.supplierRef);
       return;
     }
 
-    if (selected === rowItem?.code) {
-      console.log('selected === rowItem?.code');
+    if (selected === rowItem?.supplierRef) {
       props.onItemSelect(null);
       setSelected(null);
       return;
     }
 
-    if (selected !== rowItem?.code) {
-      console.log('selected !== rowItem?.code ', { deded: rowItem?.code });
+    if (selected !== rowItem?.supplierRef) {
       props.onItemSelect(rowItem);
-      setSelected(rowItem?.code);
+      setSelected(rowItem?.supplierRef);
       return;
     }
   }
 
-  const isSelected = (code: number) => selected === code;
+  const isSelected = (code: string) => selected === code;
 
   return (
     <Paper style={{ zIndex: 999, width: '100%' }}>
@@ -236,20 +219,22 @@ export default function SearchResultComponent(props: any) {
           </TableHead>
 
           <TableBody>
-            {searchedProducts?.map((row: any) => {
-              const isItemSelected = isSelected(row.code);
+            {searchedProducts?.map((row: SearchedOrderProduct) => {
+              const isItemSelected = isSelected(row.supplierRef);
 
               return (
                 <StyledTableRow
                   hover
                   tabIndex={-1}
-                  key={row.code}
+                  key={row.supplierRef}
                   role="checkbox"
                   aria-checked={isItemSelected}
                   selected={isItemSelected}
                 >
                   {columns.map((column) => {
+                    // @ts-ignore
                     const value = row[column.id];
+                    console.log({ valuee: column.id });
                     if (column.id === 'quantity') {
                       return (
                         <StyledTableCell key={column.id} align={column.align}>
@@ -258,7 +243,7 @@ export default function SearchResultComponent(props: any) {
                             style={{ width: 35 }}
                             id="outlined-number"
                             type="number"
-                            value={row.quantity}
+                            value={row.productOrderQuantity}
                             onChange={(e) => handleQuantityChange(e, row)}
                             InputLabelProps={{
                               shrink: true,
@@ -276,85 +261,8 @@ export default function SearchResultComponent(props: any) {
                             style={{ width: 42 }}
                             id="outlined-number"
                             type="number"
-                            value={row.special}
+                            value={row.specialDiscount}
                             onChange={(e) => handleSpecialPromotion(e, row)}
-                            InputLabelProps={{
-                              shrink: true,
-                            }}
-                          />
-                        </StyledTableCell>
-                      );
-                    }
-
-                    if (column.id === 'unit') {
-                      if (row.unitType === 'kg') {
-                        return (
-                          <StyledTableCell key={column.id} align={column.align}>
-                            <FormControl fullWidth>
-                              <Select
-                                labelId="demo-simple-select-label"
-                                id="demo-simple-select"
-                                value={row.unit}
-                                onChange={(e) => handleUnitChange(e, row)}
-                              >
-                                {oudUniTypeValues.map((el) => (
-                                  <MenuItem value={el.value}>
-                                    {el.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </StyledTableCell>
-                        );
-                      }
-
-                      if (row.unitType === 'piece') {
-                        return (
-                          <StyledTableCell key={column.id} align={column.align}>
-                            <TextField
-                              disabled
-                              size="small"
-                              style={{ width: 50 }}
-                              id="outlined-number"
-                              type="number"
-                              value={row.unit}
-                            />
-                          </StyledTableCell>
-                        );
-                      }
-
-                      return (
-                        <StyledTableCell key={column.id} align={column.align}>
-                          <FormControl fullWidth>
-                            <Select
-                              labelId="demo-simple-select-label"
-                              id="demo-simple-select"
-                              value={row.unit}
-                              onChange={(e) => handleUnitChange(e, row)}
-                            >
-                              {oilUniTypeValues.map((el) => (
-                                <MenuItem value={el.value}>{el.label}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </StyledTableCell>
-                      );
-                    }
-
-                    if (column.id === 'weight') {
-                      return (
-                        <StyledTableCell key={column.id} align={column.align}>
-                          <TextField
-                            size="small"
-                            style={{ width: 50 }}
-                            id="outlined-number"
-                            type="number"
-                            value={row.weight}
-                            disabled={row.unitType === 'piece'}
-                            onChange={(e) => handleWeightChange(e, row)}
-                            inputProps={{
-                              step: 0.1,
-                            }}
                             InputLabelProps={{
                               shrink: true,
                             }}
@@ -396,9 +304,36 @@ export default function SearchResultComponent(props: any) {
                     if (column.id === 'item') {
                       return (
                         <StyledTableCell key={column.id} align={column.align}>
-                          <p style={{ width: 100 }}>
-                            {row.englishName} - {row.arabicName}
-                          </p>
+                          <p style={{ width: 100 }}>{row.name}</p>
+                        </StyledTableCell>
+                      );
+                    }
+
+                    if (column.id === 'variants') {
+                      // @ts-ignore
+                      if (row.variants?.variants?.length > 0) {
+                        return (
+                          <StyledTableCell key={column.id} align={column.align}>
+                            <FormControl fullWidth>
+                              <Select
+                                labelId="demo-simple-select-label"
+                                id="demo-simple-select"
+                                //defaultValue={row.variants?.variants[0].name}
+                                value={row.productOrderVariant.variant}
+                                onChange={(e) => handleVariantChange(e, row)}
+                              >
+                                {row.variants?.variants?.map((el: any) => (
+                                  <MenuItem value={el.name}>{el.name}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </StyledTableCell>
+                        );
+                      }
+
+                      return (
+                        <StyledTableCell key={column.id} align={column.align}>
+                          <p style={{ textAlign: 'center' }}>No variant</p>
                         </StyledTableCell>
                       );
                     }
@@ -417,7 +352,7 @@ export default function SearchResultComponent(props: any) {
           </TableBody>
         </Table>
       </TableContainer>
-      {searchedProducts.length > 0 && <p>Total: {totalDisplayedPrice} euros</p>}
+      {searchedProducts.length > 0 && <p>Total: {totalDisplayedPrice} QAR</p>}
     </Paper>
   );
 }

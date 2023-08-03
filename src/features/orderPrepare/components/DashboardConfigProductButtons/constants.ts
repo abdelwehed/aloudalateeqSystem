@@ -18,7 +18,7 @@ export interface IdashboardConfigButtonsList {
 }
 
 export const dashboardConfigButtonsList: Array<IdashboardConfigButtonsList> = [
-  {
+  /* {
     id: 'icon1',
     component: GridViewOutlinedIcon,
   },
@@ -26,7 +26,7 @@ export const dashboardConfigButtonsList: Array<IdashboardConfigButtonsList> = [
     id: 'icon2',
     component: CancelOutlinedIcon,
   },
-  {
+    {
     id: 'icon3',
     component: SoapOutlinedIcon,
   },
@@ -49,13 +49,13 @@ export const dashboardConfigButtonsList: Array<IdashboardConfigButtonsList> = [
   {
     id: 'icon8',
     component: StarIcon,
-  },
+  }, */
   {
-    id: 'unitDecrementIcon',
+    id: 'previousVariantChangeIcon',
     component: SkipPreviousOutlinedIcon,
   },
   {
-    id: 'unitIncrementIcon',
+    id: 'nextVariantChangeIcon',
     component: SkipNextOutlinedIcon,
   },
   {

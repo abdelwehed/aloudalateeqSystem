@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "aloudalateeq-dev",
+    "prod": "cosmetic-shop-2be61"
+  },
+  "targets": {},
+  "etags": {}
+}
